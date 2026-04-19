@@ -1,20 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Menu, X, User, Coffee, Home, UtensilsCrossed, MapPin, Info, ShoppingBag } from 'lucide-react';
 import logo from '../assets/White.png';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const menuTimeoutRef = useRef(null);
 
   // Close mobile menu when a link is clicked
-  const closeMenu = () => setIsOpen(false);
+  const closeMenu = useCallback(() => {
+    setIsOpen(false);
+    // Restore body scroll
+    document.body.style.overflow = '';
+  }, []);
 
-  // Navigation links configuration
+  // Toggle menu with body scroll lock for smooth performance
+  const toggleMenu = useCallback(() => {
+    setIsOpen(prev => {
+      const newState = !prev;
+      if (newState) {
+        // Lock body scroll when menu opens
+        document.body.style.overflow = 'hidden';
+      } else {
+        // Restore body scroll when menu closes
+        document.body.style.overflow = '';
+      }
+      return newState;
+    });
+  }, []);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (menuTimeoutRef.current) {
+        clearTimeout(menuTimeoutRef.current);
+      }
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  // Close menu on escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        closeMenu();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, closeMenu]);
+
+  // Close menu on window resize (if switching to desktop)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && isOpen) {
+        closeMenu();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isOpen, closeMenu]);
+
+  // Navigation links configuration with unique keys
   const navLinks = [
-    { to: '#', label: 'Home', icon: Home },
-    { to: '#', label: 'Menu', icon: UtensilsCrossed },
-    { to: '#', label: 'Locations & Hours', icon: MapPin },
-    { to: '#', label: 'About', icon: Info },
+    { id: 1, to: '#', label: 'Home', icon: Home },
+    { id: 2, to: '#', label: 'Menu', icon: UtensilsCrossed },
+    { id: 3, to: '#', label: 'Locations & Hours', icon: MapPin },
+    { id: 4, to: '#', label: 'About', icon: Info },
   ];
 
   return (
@@ -44,7 +96,7 @@ const Navbar = () => {
             <nav className="hidden md:flex items-center gap-1 lg:gap-2">
               {navLinks.map((link) => (
                 <NavLink
-                  key={link.to}
+                  key={link.id}
                   to={link.to}
                   className={({ isActive }) =>
                     `relative group px-4 lg:px-5 py-2 rounded-full text-[#D7CCC8] font-medium text-sm lg:text-base transition-all duration-300 hover:text-[#E4C483] ${
@@ -86,7 +138,7 @@ const Navbar = () => {
 
               {/* Mobile Menu Toggle Button - Luxury Design */}
               <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={toggleMenu}
                 className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-xl bg-linear-to-br from-[#C7A252]/20 to-[#E4C483]/10 border border-[#C7A252]/40 hover:border-[#E4C483]/70 transition-all duration-300 hover:scale-105 group"
                 aria-label="Toggle menu"
               >
@@ -100,10 +152,10 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu - Premium Glassmorphism Design */}
+        {/* Mobile Menu - Optimized for smooth animation */}
         <div
-          className={`md:hidden transition-all duration-500 ease-in-out transform overflow-hidden ${
-            isOpen ? 'max-h-125 opacity-100' : 'max-h-0 opacity-0'
+          className={`md:hidden transition-all duration-300 ease-in-out overflow-hidden ${
+            isOpen ? 'max-h-150 opacity-100' : 'max-h-0 opacity-0'
           }`}
         >
           <div className="relative bg-linear-to-b from-[#3E2723]/95 via-[#2C1810]/98 to-[#1a0f0a]/95 backdrop-blur-xl border-t border-[#C7A252]/30 shadow-2xl">
@@ -113,18 +165,18 @@ const Navbar = () => {
             <div className="px-6 py-6 space-y-2">
               {navLinks.map((link) => (
                 <NavLink
-                  key={link.to}
+                  key={link.id}
                   to={link.to}
                   onClick={closeMenu}
                   className={({ isActive }) =>
-                    `flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group ${
+                    `flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group ${
                       isActive
                         ? 'bg-linear-to-r from-[#C7A252]/20 to-[#E4C483]/10 text-[#E4C483] border-l-4 border-[#C7A252]'
                         : 'text-[#D7CCC8] hover:bg-[#C7A252]/10 hover:text-[#E4C483] hover:translate-x-2'
                     }`
                   }
                 >
-                  <link.icon className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${
+                  <link.icon className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110 ${
                     window.location.pathname === link.to ? 'text-[#E4C483]' : 'text-[#C7A252]'
                   }`} strokeWidth={1.7} />
                   <span className="font-medium text-base tracking-wide">{link.label}</span>
@@ -148,7 +200,7 @@ const Navbar = () => {
               <NavLink
                 to="/cart"
                 onClick={closeMenu}
-                className="flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-linear-to-r from-[#C7A252]/15 to-[#E4C483]/5 border border-[#C7A252]/30 hover:border-[#E4C483]/50 transition-all duration-300 group"
+                className="flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-linear-to-r from-[#C7A252]/15 to-[#E4C483]/5 border border-[#C7A252]/30 hover:border-[#E4C483]/50 transition-all duration-200 group"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-linear-to-br from-[#C7A252]/30 to-[#E4C483]/20">
@@ -159,14 +211,14 @@ const Navbar = () => {
                     <p className="text-[#D7CCC8]/60 text-xs">View your items</p>
                   </div>
                 </div>
-                <span className="text-[#E4C483] text-sm group-hover:translate-x-1 transition-transform duration-300">→</span>
+                <span className="text-[#E4C483] text-sm group-hover:translate-x-1 transition-transform duration-200">→</span>
               </NavLink>
 
               {/* Profile Section in Mobile Menu */}
               <NavLink
                 to="/profile"
                 onClick={closeMenu}
-                className="flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-linear-to-r from-[#C7A252]/15 to-[#E4C483]/5 border border-[#C7A252]/30 hover:border-[#E4C483]/50 transition-all duration-300 group"
+                className="flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-linear-to-r from-[#C7A252]/15 to-[#E4C483]/5 border border-[#C7A252]/30 hover:border-[#E4C483]/50 transition-all duration-200 group"
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-linear-to-br from-[#C7A252]/30 to-[#E4C483]/20">
@@ -177,7 +229,7 @@ const Navbar = () => {
                     <p className="text-[#D7CCC8]/60 text-xs">Profile & Preferences</p>
                   </div>
                 </div>
-                <span className="text-[#E4C483] text-sm group-hover:translate-x-1 transition-transform duration-300">→</span>
+                <span className="text-[#E4C483] text-sm group-hover:translate-x-1 transition-transform duration-200">→</span>
               </NavLink>
             </div>
             
